@@ -1,192 +1,229 @@
-# ContextCLI
+﻿<div align="center">
 
-**Local-first Retrieval-Augmented Generation (RAG) CLI tool.**  
-Index your codebase, then chat with it offline — powered by a local LLM via Ollama.
+# 🧠 ContextCLI
+
+### Local-first RAG CLI — Chat with your codebase, completely offline.
+
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.2-brightgreen?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring AI](https://img.shields.io/badge/Spring_AI-1.0.0-brightgreen?logo=spring&logoColor=white)](https://spring.io/projects/spring-ai)
+[![Ollama](https://img.shields.io/badge/Ollama-llama3.2-black?logo=ollama&logoColor=white)](https://ollama.com/)
+[![PGVector](https://img.shields.io/badge/PGVector-PostgreSQL_16-blue?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<br/>
+
+> Index any codebase. Ask natural-language questions. Get answers grounded in your real source code.  
+> No cloud. No API keys. No data leaves your machine.
+
+</div>
+
+---
+
+## ✨ Features
+
+- 🔍 **Smart Indexing** — Recursively scans and indexes entire codebases using Apache Tika
+- 💬 **Natural Language Q&A** — Ask any question about your code in plain English
+- 🔒 **100% Private & Offline** — Powered by local models via Ollama (no internet required)
+- ⚡ **RAG Pipeline** — Retrieves only the top-5 relevant chunks, not the whole codebase
+- 🗄️ **Vector Storage** — Semantic search via PGVector (PostgreSQL with pgvector extension)
+- 🔄 **Always Fresh** — Re-index after any code change in seconds — no fine-tuning needed
+
+---
+
+## 🏗️ Architecture
+
+```
+Your Question
+     │
+     ▼
+┌─────────────────────────────┐
+│  nomic-embed-text (Ollama)  │  ← embed question
+└─────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────┐
+│  PGVector Similarity Search │  ← top-5 relevant chunks
+└─────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────┐
+│  RetrievalAugmentationAdvisor│  ← inject context into prompt
+└─────────────────────────────┘
+     │
+     ▼
+┌─────────────────────────────┐
+│  llama3.2 via Ollama        │  ← generate answer
+└─────────────────────────────┘
+     │
+     ▼
+  Answer grounded in your actual code
+```
+
+---
+
+## 🧰 Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Language | Java 21 |
-| Framework | Spring Boot 3.3 + Spring Shell |
-| AI Orchestration | Spring AI 1.0 |
-| Local LLM | Ollama (`llama3.2` chat · `nomic-embed-text` embeddings) |
-| Vector DB | PGVector (PostgreSQL 16 via Docker) |
-| Document Parsing | Apache Tika |
-| Native Binary | GraalVM Native Image |
+| Framework | Spring Boot 3.4.2 + Spring Shell 3.3.3 |
+| AI Orchestration | Spring AI 1.0.0 |
+| Chat Model | Ollama `llama3.2` |
+| Embedding Model | Ollama `nomic-embed-text` |
+| Vector Database | PGVector on PostgreSQL 16 (Docker) |
+| Document Parsing | Apache Tika 3.x |
+| RAG Advisor | Spring AI `RetrievalAugmentationAdvisor` |
 
 ---
 
-## Prerequisites
+## ⚙️ Prerequisites
 
-| Requirement | Install |
-|---|---|
-| **Java 21+** | [SDKMAN](https://sdkman.io/) `sdk install java 21-graalce` or [Adoptium](https://adoptium.net/) |
-| **GraalVM 21+** | [GraalVM CE](https://www.graalvm.org/) (use `21-graalce` via SDKMAN for one-step install) |
-| **Maven 3.9+** | `sdk install maven` or [Apache Maven](https://maven.apache.org/) |
-| **Docker** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| **Ollama** | [ollama.com](https://ollama.com/) |
+| Tool | Version | Link |
+|---|---|---|
+| Java JDK | 21+ | [Adoptium](https://adoptium.net/) |
+| Apache Maven | 3.9+ | [maven.apache.org](https://maven.apache.org/) |
+| Docker Desktop | Latest | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| Ollama | Latest | [ollama.com](https://ollama.com/) |
+
+> **Windows users:** Docker Desktop requires WSL 2. Run `wsl --update` in an admin PowerShell if Docker fails to start.
 
 ---
 
-## 1 — Start the Infrastructure
+## 🚀 Getting Started
 
-### 1.1 PGVector (PostgreSQL)
+### Step 1 — Start the Vector Database
 
 ```bash
 docker compose up -d
 ```
 
-This launches a PostgreSQL 16 container with the `pgvector` extension.  
-Connection details (see `application.properties`):
-
-| Property | Value |
+| Setting | Value |
 |---|---|
 | Host | `localhost:5432` |
 | Database | `contextcli` |
-| User | `contextcli` |
+| Username | `contextcli` |
 | Password | `contextcli` |
 
-### 1.2 Ollama — Pull the Models
+### Step 2 — Pull Ollama Models
 
 ```bash
-# Start the Ollama daemon (if not already running)
-ollama serve
-
-# Pull the chat model
 ollama pull llama3.2
-
-# Pull the embedding model
 ollama pull nomic-embed-text
 ```
 
----
+> 💡 Run `ollama run llama3.2 "hi"` once before using the app to pre-load the model into memory.
 
-## 2 — Build & Run (JIT Mode)
+### Step 3 — Run the Application
 
 ```bash
-# Compile
-mvn clean package -DskipTests
-
-# Run the interactive CLI
-java -jar target/contextcli-1.0.0.jar
+mvn spring-boot:run
 ```
 
-You will see the ContextCLI banner and a `shell:>` prompt.
+Wait for the `shell:>` prompt to appear, then start using the commands below.
 
 ---
 
-## 3 — CLI Usage
+## 💻 Usage
 
-### Index a codebase
+### `index` — Index a codebase
 
-```
-shell:> index --path /absolute/path/to/your/project
-```
-
-or a single file:
-
-```
-shell:> index --path ./src/main/java/com/example/MyService.java
+```bash
+shell:> index --path .
+shell:> index --path C:/Users/you/myproject
 ```
 
-The command recursively discovers all supported source files, parses them with
-Apache Tika, splits them into token-sized chunks, generates embeddings via
-`nomic-embed-text` on your local Ollama, and stores everything in PGVector.
+> **Windows:** Use `.` or forward slashes `/`. Backslashes are escape characters in Spring Shell.
 
-### Ask a question
-
+**Sample output:**
 ```
-shell:> ask --question "How does the authentication flow work?"
+  ✓ [1/7] pom.xml  (1 chunk)
+  ✓ [2/7] docker-compose.yml  (1 chunk)
+  ✓ [3/7] README.md  (2 chunks)
+  ✓ [4/7] src/main/java/.../ContextCliCommands.java  (3 chunks)
+
+── Indexing complete ──
+  Files indexed : 7
+  Files failed  : 0
+  Total chunks  : 10
 ```
 
-Spring AI's `QuestionAnswerAdvisor` automatically:
-1. Embeds your question.
-2. Retrieves the top-5 most relevant chunks from PGVector.
-3. Injects them into the prompt context.
-4. Sends the enriched prompt to `llama3.2` via Ollama.
-5. Returns the answer.
+### `ask` — Ask a question
 
-### Exit
-
+```bash
+shell:> ask --question "What commands does this CLI support?"
+shell:> ask --question "How does the indexing pipeline work?"
+shell:> ask --question "What dependencies does this project use?"
 ```
+
+### `exit` — Exit the shell
+
+```bash
 shell:> exit
 ```
 
 ---
 
-## 4 — Compile to a Native Image (GraalVM)
-
-Building a native executable gives you **instant CLI startup** (~50 ms vs ~3 s).
-
-### Step-by-step terminal commands
-
-```bash
-# ① Make sure JAVA_HOME points to GraalVM 21+
-java -version
-# Expected: GraalVM CE 21.x or Liberica NIK 21.x
-
-# ② Install the native-image tool (GraalVM CE)
-gu install native-image          # skip if already present
-
-# ③ Build the native executable (takes 3-7 minutes on first run)
-mvn clean -Pnative native:compile -DskipTests
-
-# ④ Run the native binary
-#    Linux / macOS:
-./target/contextcli
-
-#    Windows:
-target\contextcli.exe
-```
-
-> **Note on Apache Tika & native image:**  
-> Tika uses heavy reflection and service-loader patterns. If you hit
-> `ClassNotFoundException` or `MissingReflectionRegistrationError` at runtime,
-> add GraalVM reachability metadata:
->
-> ```bash
-> # Run the app with the tracing agent to auto-collect metadata
-> java -agentlib:native-image-agent=config-output-dir=src/main/resources/META-INF/native-image \
->      -jar target/contextcli-1.0.0.jar
-> # (exercise both `index` and `ask` commands, then exit)
->
-> # Rebuild with the generated hints
-> mvn clean -Pnative native:compile -DskipTests
-> ```
-
----
-
-## 5 — Project Structure
+## 📁 Project Structure
 
 ```
 ContextCLI/
-├── pom.xml                              # Maven build with Spring AI, Shell, GraalVM
-├── docker-compose.yml                   # PGVector PostgreSQL container
+├── pom.xml                                   # Maven build (Spring AI, RAG, commons-io fix)
+├── docker-compose.yml                        # PGVector PostgreSQL 16 container
 └── src/main/
     ├── java/com/contextcli/
-    │   ├── ContextCliApplication.java   # Spring Boot entry point
-    │   └── commands/
-    │       └── ContextCliCommands.java  # @ShellComponent (index + ask)
+    │   ├── ContextCliApplication.java        # Spring Boot entry point
+    │   ├── commands/
+    │   │   └── ContextCliCommands.java       # index + ask shell commands
+    │   └── config/
+    │       └── OllamaHttpConfig.java         # Blocking HTTP client fix
     └── resources/
-        ├── application.properties       # Ollama, PGVector, Shell config
-        └── banner.txt                   # ASCII art banner
+        ├── application.properties            # Ollama, PGVector, timeout config
+        └── banner.txt                        # ASCII art banner
 ```
 
 ---
 
-## Supported File Types
+## 📄 Supported File Types
 
-The `index` command processes files with the following extensions:
+| Category | Extensions |
+|---|---|
+| JVM | `.java` `.kt` `.scala` `.groovy` |
+| Python | `.py` |
+| JavaScript / TypeScript | `.js` `.ts` `.jsx` `.tsx` |
+| Systems | `.go` `.rs` `.cpp` `.c` `.h` `.cs` `.swift` |
+| Web | `.html` `.css` `.scss` |
+| Data / Config | `.sql` `.json` `.yaml` `.yml` `.toml` `.xml` `.properties` `.env` |
+| Docs | `.md` `.txt` `.rst` |
+| DevOps / IaC | `.sh` `.ps1` `.dockerfile` `.tf` `.gradle` |
 
-`.java` `.py` `.js` `.ts` `.jsx` `.tsx` `.go` `.rs` `.rb` `.cpp` `.c` `.h`
-`.hpp` `.cs` `.kt` `.scala` `.swift` `.php` `.html` `.css` `.scss` `.sql`
-`.xml` `.json` `.yaml` `.yml` `.toml` `.md` `.txt` `.sh` `.bash` `.ps1`
-`.gradle` `.properties` `.cfg` `.ini` `.env` `.dockerfile` `.tf` and more.
+**Auto-skipped:** `.git` `node_modules` `target` `build` `dist` `__pycache__` `.idea` `.vscode`
 
-It automatically **skips** `.git`, `node_modules`, `target`, `build`, `dist`,
-`__pycache__`, `.idea`, `.vscode` and similar directories.
+---
+
+## 🆚 Why RAG?
+
+| Without RAG | With RAG (ContextCLI) |
+|---|---|
+| LLM guesses from training data | Answers from your actual code |
+| Hallucinated APIs & function names | References real file names & snippets |
+| Unaware of private codebases | Instantly aware of any indexed project |
+| Entire codebase exceeds context limit | Only top-5 relevant chunks injected |
+| Requires expensive fine-tuning to update | Re-index in seconds after any change |
+
+---
+
+## 📝 Notes
+
+| Note | Detail |
+|---|---|
+| **Slow first ask** | `llama3.2` takes 1–2 min to load on first use. Pre-warm with `ollama run llama3.2 "hi"` |
+| **Windows paths** | Always use `.` or forward slashes `/` in `index --path` |
+| **WSL 2** | Docker Desktop on Windows requires WSL 2 — run `wsl --update` in admin PowerShell |
+| **Model sizes** | `llama3.2` ≈ 2 GB · `nomic-embed-text` ≈ 274 MB |
 
 ---
 
 ## License
 
-MIT
+MIT © 2026
